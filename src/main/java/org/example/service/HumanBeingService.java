@@ -110,6 +110,62 @@ public class HumanBeingService {
         return mapper.toDTO(saved);
     }
 
+    public HumanBeingDTO updateHumanBeing(Long id, HumanBeingDTO dto) {
+        HumanBeing existing = humanBeingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("HumanBeing not found with id: " + id));
+
+        existing.setName(dto.getName());
+        existing.setRealHero(dto.getRealHero());
+        existing.setHasToothpick(dto.getHasToothpick());
+        existing.setMood(dto.getMood());
+        existing.setImpactSpeed(dto.getImpactSpeed());
+        existing.setMinutesOfWaiting(dto.getMinutesOfWaiting());
+        existing.setWeaponType(dto.getWeaponType());
+
+        if (dto.getCoordinates() != null) {
+            Coordinates coords;
+            if (dto.getCoordinates().getId() != null) {
+                coords = coordinatesRepository.findById(dto.getCoordinates().getId())
+                        .orElseThrow(() -> new RuntimeException("Coordinates not found"));
+                if (dto.getCoordinates().getX() != null) coords.setX(dto.getCoordinates().getX());
+                if (dto.getCoordinates().getY() != null) coords.setY(dto.getCoordinates().getY());
+            } else {
+                coords = mapper.toCoordinatesEntity(dto.getCoordinates());
+            }
+
+            if (coords.getY() != null && coords.getY() <= -926) {
+                throw new IllegalArgumentException("Y coordinate must be greater than -926");
+            }
+            if (coords.getX() != null && coords.getX() > 112) {
+                throw new IllegalArgumentException("X coordinate cannot exceed 112");
+            }
+
+            coords = coordinatesRepository.save(coords);
+            existing.setCoordinates(coords);
+        }
+
+        if (dto.getCar() != null) {
+            if (dto.getCar().getId() != null) {
+                Car car = carRepository.findById(dto.getCar().getId())
+                        .orElseThrow(() -> new RuntimeException("Car not found"));
+                car.setName(dto.getCar().getName());
+                carRepository.save(car);
+                existing.setCar(car);
+            } else {
+                Car car = mapper.toCarEntity(dto.getCar());
+                car = carRepository.save(car);
+                existing.setCar(car);
+            }
+        }
+
+        if (existing.getImpactSpeed() != null && existing.getImpactSpeed() > 345) {
+            throw new IllegalArgumentException("Impact speed cannot exceed 345");
+        }
+
+        HumanBeing updated = humanBeingRepository.save(existing);
+        return mapper.toDTO(updated);
+    }
+
     public List<Car> getAllCars() {
         return carRepository.findAll();
     }
