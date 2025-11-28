@@ -62,6 +62,54 @@ public class HumanBeingService {
                 .orElseThrow(() -> new RuntimeException("HumanBeing not found with id: " + id));
     }
 
+    public HumanBeingDTO createHumanBeing(HumanBeingDTO dto) {
+        HumanBeing entity = mapper.toEntity(dto);
+
+        if (dto.getCoordinates() != null) {
+            Coordinates coords;
+            if (dto.getCoordinates().getId() == null) {
+                coords = mapper.toCoordinatesEntity(dto.getCoordinates());
+                if (coords.getY() != null && coords.getY() <= -926) {
+                    throw new IllegalArgumentException("Y coordinate must be greater than -926");
+                }
+                if (coords.getX() != null && coords.getX() > 112) {
+                    throw new IllegalArgumentException("X coordinate cannot exceed 112");
+                }
+                coords = coordinatesRepository.save(coords);
+            } else {
+                coords = coordinatesRepository.findById(dto.getCoordinates().getId())
+                        .orElseThrow(() -> new RuntimeException("Coordinates not found"));
+                if (dto.getCoordinates().getX() != null) coords.setX(dto.getCoordinates().getX());
+                if (dto.getCoordinates().getY() != null) coords.setY(dto.getCoordinates().getY());
+                if (coords.getY() != null && coords.getY() <= -926) {
+                    throw new IllegalArgumentException("Y coordinate must be greater than -926");
+                }
+                if (coords.getX() != null && coords.getX() > 112) {
+                    throw new IllegalArgumentException("X coordinate cannot exceed 112");
+                }
+                coords = coordinatesRepository.save(coords);
+            }
+            entity.setCoordinates(coords);
+        }
+
+        if (dto.getCar() != null && dto.getCar().getId() == null) {
+            Car car = mapper.toCarEntity(dto.getCar());
+            car = carRepository.save(car);
+            entity.setCar(car);
+        } else if (dto.getCar() != null && dto.getCar().getId() != null) {
+            Car car = carRepository.findById(dto.getCar().getId())
+                    .orElseThrow(() -> new RuntimeException("Car not found"));
+            entity.setCar(car);
+        }
+
+        if (entity.getImpactSpeed() != null && entity.getImpactSpeed() > 345) {
+            throw new IllegalArgumentException("Impact speed cannot exceed 345");
+        }
+
+        HumanBeing saved = humanBeingRepository.save(entity);
+        return mapper.toDTO(saved);
+    }
+
     public List<Car> getAllCars() {
         return carRepository.findAll();
     }

@@ -61,6 +61,27 @@ public class HumanBeingController {
         }
     }
 
+    @PostMapping
+    public ResponseEntity<?> createHumanBeing(@Valid @RequestBody HumanBeingDTO dto, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            bindingResult.getFieldErrors().forEach(error ->
+                    errors.put(error.getField(), error.getDefaultMessage()));
+            return ResponseEntity.badRequest().body(errors);
+        }
+
+        try {
+            HumanBeingDTO created = humanBeingService.createHumanBeing(dto);
+            notificationService.notifyAll("created", created);
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/cars")
     public ResponseEntity<List<org.example.entity.Car>> getAllCars() {
         return ResponseEntity.ok(humanBeingService.getAllCars());
