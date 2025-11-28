@@ -107,6 +107,18 @@ public class HumanBeingController {
         }
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteHumanBeing(@PathVariable Long id,
+                                              @RequestParam(required = false) Long replacementId) {
+        try {
+            humanBeingService.deleteHumanBeing(id, replacementId);
+            notificationService.notifyAll("deleted", Map.of("id", id));
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/cars")
     public ResponseEntity<List<org.example.entity.Car>> getAllCars() {
         return ResponseEntity.ok(humanBeingService.getAllCars());

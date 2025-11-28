@@ -166,6 +166,30 @@ public class HumanBeingService {
         return mapper.toDTO(updated);
     }
 
+    public void deleteHumanBeing(Long id, Long replacementId) {
+        HumanBeing toDelete = humanBeingRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("HumanBeing not found with id: " + id));
+
+        if (replacementId != null) {
+            HumanBeing replacement = humanBeingRepository.findById(replacementId)
+                    .orElseThrow(() -> new RuntimeException("Replacement HumanBeing not found with id: " + replacementId));
+
+            Long carUsageCount = humanBeingRepository.countByCarId(toDelete.getCar().getId());
+            if (carUsageCount == 1) {
+                replacement.setCar(toDelete.getCar());
+            }
+
+            Long coordinatesUsageCount = humanBeingRepository.countByCoordinatesId(toDelete.getCoordinates().getId());
+            if (coordinatesUsageCount == 1) {
+                replacement.setCoordinates(toDelete.getCoordinates());
+            }
+
+            humanBeingRepository.save(replacement);
+        }
+
+        humanBeingRepository.delete(toDelete);
+    }
+
     public List<Car> getAllCars() {
         return carRepository.findAll();
     }
