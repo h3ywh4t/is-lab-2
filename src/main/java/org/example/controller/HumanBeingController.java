@@ -119,6 +119,26 @@ public class HumanBeingController {
         }
     }
 
+    @PostMapping("/special/delete-by-weapon-type")
+    public ResponseEntity<?> deleteOneByWeaponType(@RequestParam WeaponType weaponType) {
+        try {
+            org.example.entity.HumanBeing deleted = humanBeingService.deleteOneByWeaponType(weaponType);
+            if (deleted != null) {
+                Map<String, Object> result = new HashMap<>();
+                result.put("id", deleted.getId());
+                result.put("name", deleted.getName());
+                result.put("weaponType", deleted.getWeaponType() != null ? deleted.getWeaponType().toString() : null);
+                notificationService.notifyAll("deleted", Map.of("weaponType", weaponType.toString()));
+                return ResponseEntity.ok(result);
+            } else {
+                return ResponseEntity.ok(Map.of("message", "No objects found with weaponType: " + weaponType));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/special/average-impact-speed")
     public ResponseEntity<Map<String, Double>> getAverageImpactSpeed() {
         Double avg = humanBeingService.getAverageImpactSpeed();
@@ -129,6 +149,30 @@ public class HumanBeingController {
     public ResponseEntity<List<HumanBeingDTO>> findByNameContaining(@RequestParam String substring) {
         List<HumanBeingDTO> result = humanBeingService.findByNameContaining(substring);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/special/set-heroes-mood-sadness")
+    public ResponseEntity<?> setAllHeroesMoodToSadness() {
+        try {
+            int count = humanBeingService.setAllHeroesMoodToSadness();
+            notificationService.notifyAll("updated", Map.of("operation", "setHeroesMoodToSadness"));
+            return ResponseEntity.ok(Map.of("count", count, "message", count + " objects changed to SADNESS"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/special/set-heroes-without-car-to-lada")
+    public ResponseEntity<?> setAllHeroesWithoutCarToRedLadaKalina() {
+        try {
+            int count = humanBeingService.setAllHeroesWithoutCarToRedLadaKalina();
+            notificationService.notifyAll("updated", Map.of("operation", "setHeroesWithoutCarToLada"));
+            return ResponseEntity.ok(Map.of("count", count, "message", count + " heroes moved to Lada Kalina"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/cars")

@@ -190,6 +190,21 @@ public class HumanBeingService {
         humanBeingRepository.delete(toDelete);
     }
 
+    public HumanBeing deleteOneByWeaponType(WeaponType weaponType) {
+        List<HumanBeing> found = humanBeingRepository.findByWeaponType(weaponType);
+        if (!found.isEmpty()) {
+            HumanBeing toDelete = found.get(0);
+            HumanBeing result = new HumanBeing();
+            result.setId(toDelete.getId());
+            result.setName(toDelete.getName());
+            result.setWeaponType(toDelete.getWeaponType());
+            humanBeingRepository.deleteById(toDelete.getId());
+            return result;
+        } else {
+            return null;
+        }
+    }
+
     public Double getAverageImpactSpeed() {
         Double avg = humanBeingRepository.getAverageImpactSpeed();
         return avg != null ? avg : 0.0;
@@ -200,6 +215,40 @@ public class HumanBeingService {
                 .stream()
                 .map(mapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    public int setAllHeroesMoodToSadness() {
+        List<HumanBeing> heroes = humanBeingRepository.findAllRealHeroes();
+        int changed = 0;
+
+        for (HumanBeing hb : heroes) {
+            if (hb.getMood() != Mood.SADNESS) {
+                hb.setMood(Mood.SADNESS);
+                changed++;
+            }
+        }
+
+        humanBeingRepository.saveAll(heroes);
+        return changed;
+    }
+
+
+    public int setAllHeroesWithoutCarToRedLadaKalina() {
+        List<HumanBeing> heroesWithoutCar = humanBeingRepository.findAllHeroesWithoutCar();
+        Car redLadaKalina = carRepository.findAll().stream()
+                .filter(c -> c.getName() != null && c.getName().equals("Lada Kalina"))
+                .findFirst()
+                .orElseGet(() -> {
+                    Car newCar = new Car();
+                    newCar.setName("Lada Kalina");
+                    return carRepository.save(newCar);
+                });
+
+        for (HumanBeing hero : heroesWithoutCar) {
+            hero.setCar(redLadaKalina);
+        }
+        humanBeingRepository.saveAll(heroesWithoutCar);
+        return heroesWithoutCar.size();
     }
 
     public List<Car> getAllCars() {
