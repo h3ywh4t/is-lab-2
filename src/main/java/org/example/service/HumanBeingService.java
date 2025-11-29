@@ -190,6 +190,18 @@ public class HumanBeingService {
         humanBeingRepository.delete(toDelete);
     }
 
+    public Double getAverageImpactSpeed() {
+        Double avg = humanBeingRepository.getAverageImpactSpeed();
+        return avg != null ? avg : 0.0;
+    }
+
+    public List<HumanBeingDTO> findByNameContaining(String substring) {
+        return humanBeingRepository.findByNameContaining(substring)
+                .stream()
+                .map(mapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<Car> getAllCars() {
         return carRepository.findAll();
     }

@@ -119,6 +119,18 @@ public class HumanBeingController {
         }
     }
 
+    @GetMapping("/special/average-impact-speed")
+    public ResponseEntity<Map<String, Double>> getAverageImpactSpeed() {
+        Double avg = humanBeingService.getAverageImpactSpeed();
+        return ResponseEntity.ok(Map.of("averageImpactSpeed", avg));
+    }
+
+    @GetMapping("/special/search-by-name")
+    public ResponseEntity<List<HumanBeingDTO>> findByNameContaining(@RequestParam String substring) {
+        List<HumanBeingDTO> result = humanBeingService.findByNameContaining(substring);
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/cars")
     public ResponseEntity<List<org.example.entity.Car>> getAllCars() {
         return ResponseEntity.ok(humanBeingService.getAllCars());
