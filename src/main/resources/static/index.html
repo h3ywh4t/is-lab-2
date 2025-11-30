@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Being Management System</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Human Being Management System</h1>
+        <nav class="menu">
+            <button class="menu-btn active" data-view="table">Objects Table</button>
+        </nav>
+    </header>
+
+    <div id="table-view" class="view active">
+        <div class="toolbar">
+            <div class="filters">
+                <select id="filter-column-select">
+                    <option value="">Select column...</option>
+                    <option value="name">Name</option>
+                    <option value="car.name">Car Name</option>
+                    <option value="mood">Mood</option>
+                    <option value="weaponType">Weapon Type</option>
+                </select>
+                <input type="text" id="filter-input" placeholder="Filter value (exact match)...">
+                <button class="btn btn-secondary" id="apply-filter-btn">Apply</button>
+                <button class="btn btn-secondary" id="clear-filter-btn">Clear</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="human-beings-table">
+                <thead>
+                <tr>
+                    <th data-sort="id">ID</th>
+                    <th data-sort="name">Name</th>
+                    <th data-sort="coordinates.x">X</th>
+                    <th data-sort="coordinates.y">Y</th>
+                    <th data-sort="creationDate">Creation Date</th>
+                    <th data-sort="realHero">Real Hero</th>
+                    <th data-sort="hasToothpick">Has Toothpick</th>
+                    <th data-sort="car.name">Car Name</th>
+                    <th data-sort="mood">Mood</th>
+                    <th data-sort="impactSpeed">Impact Speed</th>
+                    <th data-sort="minutesOfWaiting">Minutes Of Waiting</th>
+                    <th data-sort="weaponType">Weapon Type</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody id="table-body">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <div class="pagination-left">
+                <select id="page-size-select">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                    <option value="25">25</option>
+                </select>
+            </div>
+            <div class="pagination-right">
+                <button id="prev-page" class="pagination-btn">←</button>
+                <span id="page-info">Page 1 of 1</span>
+                <button id="next-page" class="pagination-btn">→</button>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+<script src="js/api.js"></script>
+</body>
+</html>
