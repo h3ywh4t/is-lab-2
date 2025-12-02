@@ -12,6 +12,7 @@
         <h1>Human Being Management System</h1>
         <nav class="menu">
             <button class="menu-btn active" data-view="table">Objects Table</button>
+            <button class="menu-btn" data-view="special">Special Operations</button>
         </nav>
     </header>
 
@@ -74,7 +75,47 @@
         </div>
     </div>
 
+    <div id="special-view" class="view">
+        <h2>Special Operations</h2>
+        <div class="special-operations">
+            <div class="operation-card">
+                <h3>Delete Object by Weapon Type</h3>
+                <select id="weapon-type-select">
+                    <option value="HAMMER">HAMMER</option>
+                    <option value="RIFLE">RIFLE</option>
+                    <option value="MACHINE_GUN">MACHINE_GUN</option>
+                    <option value="BAT">BAT</option>
+                </select>
+                <button class="btn btn-primary" id="delete-by-weapon-btn">Delete</button>
+                <div id="delete-by-weapon-result"></div>
+            </div>
 
+            <div class="operation-card">
+                <h3>Average Impact Speed</h3>
+                <button class="btn btn-primary" id="avg-speed-btn">Calculate</button>
+                <div id="avg-speed-result"></div>
+            </div>
+
+            <div class="operation-card">
+                <h3>Search by Name (substring)</h3>
+                <input type="text" id="name-search-input" placeholder="Enter substring...">
+                <button class="btn btn-primary" id="search-name-btn">Search</button>
+                <div id="search-results"></div>
+            </div>
+
+            <div class="operation-card">
+                <h3>Set All Heroes Mood to Sadness</h3>
+                <button class="btn btn-primary" id="set-sadness-btn">Change</button>
+                <div id="set-sadness-result"></div>
+            </div>
+
+            <div class="operation-card">
+                <h3>Move Heroes Without Car to Lada Kalina</h3>
+                <button class="btn btn-primary" id="set-lada-btn">Move</button>
+                <div id="set-lada-result"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div id="modal" class="modal">
@@ -197,5 +238,6 @@
 <script src="js/api.js"></script>
 <script src="js/table.js"></script>
 <script src="js/modal.js"></script>
+<script src="js/special.js"></script>
 </body>
 </html>
