@@ -43,6 +43,91 @@ public class ImportService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
     private final Map<Long, ImportProgressDTO> progressMap = new ConcurrentHashMap<>();
 
+    private void validateDTO(HumanBeingDTO dto) {
+        if (dto.getName() == null || dto.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Name cannot be null or empty");
+        }
+
+        if (dto.getCoordinates() == null) {
+            throw new IllegalArgumentException("Coordinates cannot be null");
+        }
+
+        if (dto.getCoordinates().getX() == null || dto.getCoordinates().getY() == null) {
+            throw new IllegalArgumentException("Coordinates x and y cannot be null");
+        }
+
+        if (dto.getCoordinates().getX() > 112) {
+            throw new IllegalArgumentException("X coordinate cannot exceed 112");
+        }
+
+        if (dto.getCoordinates().getY() <= -926) {
+            throw new IllegalArgumentException("Y coordinate must be greater than -926");
+        }
+
+        if (dto.getImpactSpeed() == null) {
+            throw new IllegalArgumentException("Impact speed cannot be null");
+        }
+
+        if (dto.getImpactSpeed() > 345) {
+            throw new IllegalArgumentException("Impact speed cannot exceed 345");
+        }
+
+        if (dto.getMinutesOfWaiting() == null) {
+            throw new IllegalArgumentException("Minutes of waiting cannot be null");
+        }
+
+        if (dto.getMood() == null) {
+            throw new IllegalArgumentException("Mood cannot be null");
+        }
+
+        if (dto.getRealHero() == null) {
+            throw new IllegalArgumentException("Real hero cannot be null");
+        }
+
+        if (dto.getCar() == null) {
+            throw new IllegalArgumentException("Car cannot be null");
+        }
+
+        List<HumanBeing> existing = humanBeingRepository.findByNameAndCoordinates(
+                dto.getName(), dto.getCoordinates().getX(), dto.getCoordinates().getY());
+        if (!existing.isEmpty()) {
+            throw new IllegalArgumentException("HumanBeing with name '" + dto.getName() +
+                    "' and coordinates (" + dto.getCoordinates().getX() + ", " + dto.getCoordinates().getY() + ") already exists");
+        }
+
+        if (Boolean.TRUE.equals(dto.getRealHero())) {
+            List<HumanBeing> existingHero = humanBeingRepository.findByHeroSpeedAndWaiting(
+                    dto.getImpactSpeed(), dto.getMinutesOfWaiting());
+            if (!existingHero.isEmpty()) {
+                throw new IllegalArgumentException("Hero with impactSpeed " + dto.getImpactSpeed() +
+                        " and minutesOfWaiting " + dto.getMinutesOfWaiting() + " already exists");
+            }
+        }
+    }
+
+    private void createHumanBeing(HumanBeingDTO dto) {
+        Coordinates coords = new Coordinates();
+        coords.setX(dto.getCoordinates().getX());
+        coords.setY(dto.getCoordinates().getY());
+
+        Car car = new Car();
+        car.setName(dto.getCar().getName());
+
+        HumanBeing entity = new HumanBeing();
+        entity.setName(dto.getName());
+        entity.setCoordinates(coords);
+        entity.setCar(car);
+        entity.setRealHero(dto.getRealHero());
+        entity.setHasToothpick(dto.getHasToothpick());
+        entity.setMood(dto.getMood());
+        entity.setImpactSpeed(dto.getImpactSpeed());
+        entity.setMinutesOfWaiting(dto.getMinutesOfWaiting());
+        entity.setWeaponType(dto.getWeaponType());
+        entity.setCreationDate(new Date());
+
+        humanBeingRepository.save(entity);
+    }
+
     private List<HumanBeingDTO> parseJSON(MultipartFile file) throws Exception {
         try {
             String content = new String(file.getBytes(), StandardCharsets.UTF_8);
