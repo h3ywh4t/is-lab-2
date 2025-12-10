@@ -43,6 +43,16 @@ public class ImportService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
     private final Map<Long, ImportProgressDTO> progressMap = new ConcurrentHashMap<>();
 
+    private List<HumanBeingDTO> parseJSON(MultipartFile file) throws Exception {
+        try {
+            String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+            HumanBeingDTO[] dtos = objectMapper.readValue(content, HumanBeingDTO[].class);
+            return Arrays.asList(dtos);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid JSON format: " + e.getMessage(), e);
+        }
+    }
+
     private List<HumanBeingDTO> parseCSV(MultipartFile file) throws Exception {
         List<HumanBeingDTO> dtos = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(
