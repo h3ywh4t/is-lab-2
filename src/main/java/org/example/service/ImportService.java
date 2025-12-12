@@ -477,5 +477,43 @@ public class ImportService {
                 .orElse(null);
     }
 
+    public List<ImportHistoryDTO> getImportHistory(String userName) {
+        boolean isAdmin = "admin".equalsIgnoreCase(userName);
 
+        List<ImportHistory> history;
+        if (isAdmin) {
+            history = importHistoryRepository.findAllOrderedById();
+        } else {
+            history = importHistoryRepository.findAllByUserName(userName).stream()
+                    .filter(h -> !Boolean.TRUE.equals(h.getIsAdmin()))
+                    .toList();
+        }
+
+        return history.stream().map(this::toDTO).toList();
+    }
+
+    public void clearImportHistory(String userName) {
+        if (!"admin".equalsIgnoreCase(userName)) {
+            throw new SecurityException("Only admin can clear import history");
+        }
+        importHistoryRepository.deleteAll();
+    }
+
+    private ImportHistoryDTO toDTO(ImportHistory history) {
+        ImportHistoryDTO dto = new ImportHistoryDTO();
+        dto.setId(history.getId());
+        dto.setFileName(history.getFileName());
+        dto.setFileType(history.getFileType());
+        dto.setStatus(history.getStatus());
+        dto.setUserName(history.getUserName());
+        dto.setIsAdmin(history.getIsAdmin());
+        dto.setStartTime(history.getStartTime());
+        dto.setEndTime(history.getEndTime());
+        dto.setTotalRecords(history.getTotalRecords());
+        dto.setSuccessfulRecords(history.getSuccessfulRecords());
+        dto.setFailedRecords(history.getFailedRecords());
+        dto.setErrorMessage(history.getErrorMessage());
+        dto.setCurrentProgress(history.getCurrentProgress());
+        return dto;
+    }
 }

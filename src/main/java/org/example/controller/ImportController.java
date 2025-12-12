@@ -61,5 +61,25 @@ public class ImportController {
         return ResponseEntity.ok(progress);
     }
 
+    @GetMapping("/history")
+    public ResponseEntity<List<ImportHistoryDTO>> getImportHistory(
+            @RequestParam(value = "userName", defaultValue = "user") String userName) {
+        List<ImportHistoryDTO> history = importService.getImportHistory(userName);
+        return ResponseEntity.ok(history);
+    }
 
+    @DeleteMapping("/history")
+    public ResponseEntity<?> clearImportHistory(
+            @RequestParam(value = "userName", defaultValue = "user") String userName) {
+        try {
+            importService.clearImportHistory(userName);
+            return ResponseEntity.ok(Map.of("message", "Import history cleared successfully"));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Only admin can clear import history"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 }
