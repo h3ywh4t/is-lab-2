@@ -74,6 +74,100 @@ public class ImportService {
         return history;
     }
 
+    public ImportHistory importFileAsync(MultipartFile file, String userName, Boolean isAdmin) {
+        String fileName = file.getOriginalFilename();
+        String fileType = fileName != null && fileName.toLowerCase().endsWith(".json") ? "JSON" : "CSV";
+
+        ImportHistory history = createImportHistory(fileName != null ? fileName : "unknown", fileType, userName, isAdmin);
+        final Long historyId = history.getId();
+
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                byte[] fileBytes = file.getBytes();
+                MultipartFile tempFile = new ByteArrayMultipartFile(
+                        fileBytes, file.getName(), fileName, file.getContentType() != null ? file.getContentType() : "application/octet-stream"
+                );
+
+                return processImport(tempFile, history);
+            } catch (Exception e) {
+                updateHistoryError(historyId, e.getMessage());
+                throw new RuntimeException(e);
+            }
+        }, executorService);
+
+        return history;
+    }
+
+    private ImportHistory processImport(MultipartFile file, ImportHistory history) {
+        Long historyId = history.getId();
+        String fileName = history.getFileName();
+
+        try {
+            List<HumanBeingDTO> dtos;
+            if ("JSON".equals(history.getFileType())) {
+                dtos = parseJSON(file);
+            } else {
+                dtos = parseCSV(file);
+            }
+
+            history.setTotalRecords(dtos.size());
+            importHistoryRepository.save(history);
+
+            importRecords(dtos, historyId, fileName);
+
+            history = importHistoryRepository.findById(historyId).orElse(history);
+            history.setStatus(ImportHistory.ImportStatus.COMPLETED);
+            history.setCurrentProgress(100);
+            history.setEndTime(new Date());
+            importHistoryRepository.save(history);
+
+            sendProgress(historyId, fileName, dtos.size(), dtos.size(),
+                    history.getSuccessfulRecords(), history.getFailedRecords(), "COMPLETED");
+
+            return history;
+        } catch (Exception e) {
+            updateHistoryError(historyId, e.getMessage());
+            throw new RuntimeException("Import failed: " + e.getMessage(), e);
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+    public void importRecords(List<HumanBeingDTO> dtos, Long historyId, String fileName) {
+        int successful = 0;
+        int failed = 0;
+
+        for (int i = 0; i < dtos.size(); i++) {
+            HumanBeingDTO dto = dtos.get(i);
+            try {
+                validateDTO(dto);
+                createHumanBeing(dto);
+                successful++;
+
+                int progress = (int) ((i + 1) * 100.0 / dtos.size());
+
+                if (progress < 100) {
+                    updateProgressAsync(historyId, fileName, i + 1, dtos.size(), successful, failed, progress);
+                }
+
+                Thread.sleep(5);
+            } catch (Exception e) {
+                failed++;
+                int progress = (int) ((i + 1) * 100.0 / dtos.size());
+                if (progress < 100) {
+                    updateProgressAsync(historyId, fileName, i + 1, dtos.size(), successful, failed, progress);
+                }
+                throw new RuntimeException("Error importing record: " + e.getMessage(), e);
+            }
+        }
+
+        ImportHistory history = importHistoryRepository.findById(historyId).orElse(null);
+        if (history != null) {
+            history.setSuccessfulRecords(successful);
+            history.setFailedRecords(failed);
+            importHistoryRepository.save(history);
+        }
+    }
+
     private void validateDTO(HumanBeingDTO dto) {
         if (dto.getName() == null || dto.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Name cannot be null or empty");
