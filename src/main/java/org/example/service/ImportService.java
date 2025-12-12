@@ -43,6 +43,37 @@ public class ImportService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
     private final Map<Long, ImportProgressDTO> progressMap = new ConcurrentHashMap<>();
 
+    public ImportHistory createImportHistory(String fileName, String fileType, String userName, Boolean isAdmin) {
+        ImportHistory history = new ImportHistory();
+        history.setFileName(fileName);
+        history.setFileType(fileType);
+        history.setStatus(ImportHistory.ImportStatus.IN_PROGRESS);
+        history.setUserName(userName);
+        history.setIsAdmin(isAdmin);
+        history.setStartTime(new Date());
+        history.setCurrentProgress(0);
+        history.setTotalRecords(0);
+        history.setSuccessfulRecords(0);
+        history.setFailedRecords(0);
+
+        history = importHistoryRepository.save(history);
+
+        ImportProgressDTO dto = new ImportProgressDTO();
+        dto.setImportId(history.getId());
+        dto.setFileName(history.getFileName());
+        dto.setCurrentProgress(0);
+        dto.setTotalRecords(0);
+        dto.setProcessedRecords(0);
+        dto.setSuccessfulRecords(0);
+        dto.setFailedRecords(0);
+        dto.setStatus("IN_PROGRESS");
+        dto.setErrorMessage(null);
+
+        progressMap.put(history.getId(), dto);
+
+        return history;
+    }
+
     private void validateDTO(HumanBeingDTO dto) {
         if (dto.getName() == null || dto.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Name cannot be null or empty");
@@ -257,6 +288,99 @@ public class ImportService {
             return value.isEmpty() ? null : value;
         }
         return null;
+    }
+
+    private void updateProgressAsync(Long historyId, String fileName, int processed, int total,
+                                     int successful, int failed, int progress) {
+        try {
+            updateProgress(historyId, fileName, processed, total, successful, failed, progress);
+        } catch (Exception e) {
+        }
+    }
+
+    private void updateProgress(Long historyId, String fileName, int processed, int total,
+                                int successful, int failed, int progress) {
+
+        ImportProgressDTO current = progressMap.get(historyId);
+        if (current != null) {
+            String status = current.getStatus();
+            if ("COMPLETED".equals(status) || "FAILED".equals(status)) {
+                return;
+            }
+        }
+
+        if (progress >= 100) {
+            return;
+        }
+
+        sendProgress(historyId, fileName, processed, total, successful, failed, "IN_PROGRESS");
+    }
+
+    private void sendProgress(Long historyId, String fileName, int processed, int total,
+                              int successful, int failed, String status) {
+        ImportProgressDTO progress = new ImportProgressDTO();
+        progress.setImportId(historyId);
+        progress.setFileName(fileName);
+        progress.setCurrentProgress(total > 0 ? (int) (processed * 100.0 / total) : 0);
+        progress.setTotalRecords(total);
+        progress.setProcessedRecords(processed);
+        progress.setSuccessfulRecords(successful);
+        progress.setFailedRecords(failed);
+        progress.setStatus(status);
+
+        progressMap.put(historyId, progress);
+        notificationService.notifyImportProgress(progress);
+    }
+
+    private void updateHistoryError(Long historyId, String errorMessage) {
+        try {
+            ImportHistory history = importHistoryRepository.findById(historyId).orElse(null);
+            if (history != null) {
+                history.setStatus(ImportHistory.ImportStatus.FAILED);
+                history.setErrorMessage(errorMessage);
+                history.setEndTime(new Date());
+                importHistoryRepository.save(history);
+
+                ImportProgressDTO errorProgress = new ImportProgressDTO();
+                errorProgress.setImportId(historyId);
+                errorProgress.setFileName(history.getFileName());
+                errorProgress.setStatus("FAILED");
+                errorProgress.setErrorMessage(errorMessage);
+                progressMap.put(historyId, errorProgress);
+                notificationService.notifyImportProgress(errorProgress);
+            }
+        } catch (Exception e) {
+        }
+    }
+
+    public ImportProgressDTO getProgress(Long importId) {
+        ImportProgressDTO progress = progressMap.get(importId);
+        if (progress != null) {
+            return progress;
+        }
+
+        return importHistoryRepository.findById(importId)
+                .map(history -> {
+                    ImportProgressDTO dto = new ImportProgressDTO();
+                    dto.setImportId(history.getId());
+                    dto.setFileName(history.getFileName());
+
+                    int total = history.getTotalRecords() != null ? history.getTotalRecords() : 0;
+                    int success = history.getSuccessfulRecords() != null ? history.getSuccessfulRecords() : 0;
+                    int failed = history.getFailedRecords() != null ? history.getFailedRecords() : 0;
+
+                    dto.setTotalRecords(total);
+                    dto.setSuccessfulRecords(success);
+                    dto.setFailedRecords(failed);
+                    dto.setProcessedRecords(success + failed);
+                    dto.setCurrentProgress(history.getCurrentProgress() != null
+                            ? history.getCurrentProgress()
+                            : (total > 0 ? (int) ((success + failed) * 100.0 / total) : 0));
+                    dto.setStatus(history.getStatus() != null ? history.getStatus().name() : "IN_PROGRESS");
+                    dto.setErrorMessage(history.getErrorMessage());
+                    return dto;
+                })
+                .orElse(null);
     }
 
 
