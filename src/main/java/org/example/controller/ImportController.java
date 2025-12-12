@@ -52,6 +52,54 @@ public class ImportController {
         }
     }
 
+    @PostMapping("/upload-multiple")
+    public ResponseEntity<?> uploadMultipleFiles(
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(value = "userName", defaultValue = "user") String userName,
+            @RequestParam(value = "isAdmin", defaultValue = "false") Boolean isAdmin) {
+
+        if (files.length == 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No files provided"));
+        }
+
+        if (files.length > 5) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Maximum 5 files allowed"));
+        }
+
+        List<Map<String, Object>> imports = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            if (file.isEmpty()) continue;
+
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || (!fileName.toLowerCase().endsWith(".csv") && !fileName.toLowerCase().endsWith(".json"))) {
+                continue;
+            }
+
+            try {
+                ImportHistory history = importService.importFileAsync(file, userName, isAdmin);
+
+                Map<String, Object> importInfo = new HashMap<>();
+                importInfo.put("importId", history.getId());
+                importInfo.put("fileName", fileName);
+                importInfo.put("status", "IN_PROGRESS");
+                importInfo.put("message", "Import started");
+                imports.add(importInfo);
+            } catch (Exception e) {
+                Map<String, Object> importInfo = new HashMap<>();
+                importInfo.put("fileName", fileName);
+                importInfo.put("status", "FAILED");
+                importInfo.put("error", e.getMessage());
+                imports.add(importInfo);
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("imports", imports);
+        response.put("message", "Imports started");
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/progress/{importId}")
     public ResponseEntity<ImportProgressDTO> getProgress(@PathVariable Long importId) {
         ImportProgressDTO progress = importService.getProgress(importId);
