@@ -1,0 +1,65 @@
+package org.example.controller;
+
+import org.example.dto.ImportHistoryDTO;
+import org.example.dto.ImportProgressDTO;
+import org.example.entity.ImportHistory;
+import org.example.service.ImportService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+
+@RestController
+@RequestMapping("/api/import")
+@CrossOrigin(origins = "*")
+public class ImportController {
+
+    @Autowired
+    private ImportService importService;
+
+    @PostMapping("/upload")
+    public ResponseEntity<?> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "userName", defaultValue = "user") String userName,
+            @RequestParam(value = "isAdmin", defaultValue = "false") Boolean isAdmin) {
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File is empty"));
+        }
+
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || (!fileName.toLowerCase().endsWith(".csv") && !fileName.toLowerCase().endsWith(".json"))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File must be CSV or JSON"));
+        }
+
+        try {
+            ImportHistory history = importService.importFileAsync(file, userName, isAdmin);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("importId", history.getId());
+            response.put("fileName", fileName);
+            response.put("status", "IN_PROGRESS");
+            response.put("message", "Import started");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/progress/{importId}")
+    public ResponseEntity<ImportProgressDTO> getProgress(@PathVariable Long importId) {
+        ImportProgressDTO progress = importService.getProgress(importId);
+        if (progress == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(progress);
+    }
+
+
+}
