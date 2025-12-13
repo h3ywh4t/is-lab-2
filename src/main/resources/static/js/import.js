@@ -3,6 +3,117 @@ let activeImports = new Map();
 let currentUserName = 'user';
 let currentIsAdmin = false;
 
+document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('file-input');
+    const selectFilesBtn = document.getElementById('select-files-btn');
+    const uploadBtn = document.getElementById('upload-btn');
+    const selectedFilesDiv = document.getElementById('selected-files');
+
+    selectFilesBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const newFiles = Array.from(e.target.files);
+
+        for (const file of newFiles) {
+            if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                if (selectedFiles.length >= 5) {
+                    alert('Maximum 5 files');
+                    break;
+                }
+                if (file.name.toLowerCase().endsWith('.csv') || file.name.toLowerCase().endsWith('.json')) {
+                    selectedFiles.push(file);
+                } else {
+                    alert('File ' + file.name + ' is not CSV or JSON');
+                }
+            }
+        }
+
+        fileInput.value = '';
+        updateSelectedFilesDisplay();
+        uploadBtn.disabled = selectedFiles.length === 0;
+    });
+
+    uploadBtn.addEventListener('click', async () => {
+        if (selectedFiles.length === 0) return;
+
+        const userName = prompt('Enter your user name:', 'user') || 'user';
+        const isAdmin = confirm('Are you an admin?');
+
+        currentUserName = userName;
+        currentIsAdmin = isAdmin;
+
+        await uploadMultipleFiles(selectedFiles, userName, isAdmin);
+
+        selectedFiles = [];
+        fileInput.value = '';
+        updateSelectedFilesDisplay();
+        uploadBtn.disabled = true;
+    });
+
+    function updateSelectedFilesDisplay() {
+        if (selectedFiles.length === 0) {
+            selectedFilesDiv.innerHTML = '<p>No files selected</p>';
+            return;
+        }
+
+        let html = '<ul style="list-style: none; padding: 0;">';
+        selectedFiles.forEach((file, index) => {
+            html += `<li style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin: 5px 0; background: #2a2a2a; border-radius: 5px;">
+                <span>${file.name} (${(file.size / 1024).toFixed(2)} KB)</span>
+                <button class="btn btn-danger btn-small" onclick="removeFile(${index})" style="margin-left: 10px; padding: 4px 8px; font-size: 12px;">Remove</button>
+            </li>`;
+        });
+        html += '</ul>';
+        selectedFilesDiv.innerHTML = html;
+    }
+
+    window.removeFile = function (index) {
+        selectedFiles.splice(index, 1);
+        updateSelectedFilesDisplay();
+        uploadBtn.disabled = selectedFiles.length === 0;
+    };
+});
+
+async function uploadMultipleFiles(files, userName, isAdmin) {
+    const formData = new FormData();
+    for (const file of files) {
+        formData.append('files', file);
+    }
+    formData.append('userName', userName);
+    formData.append('isAdmin', isAdmin);
+
+    try {
+        const response = await fetch('/api/import/upload-multiple', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Upload failed');
+        }
+
+        const result = await response.json();
+        const imports = result.imports || [];
+
+        for (const importInfo of imports) {
+            const importId = importInfo.importId;
+            const fileName = importInfo.fileName;
+
+            if (importId) {
+                createProgressElement(importId, fileName);
+                startPolling(importId);
+            }
+        }
+
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Upload failed: ' + error.message);
+    }
+}
+
 function createProgressElement(importId, fileName) {
     const container = document.getElementById('import-progress-container');
     if (document.getElementById(`progress-${importId}`)) {
