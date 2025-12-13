@@ -238,3 +238,102 @@ function stopPolling(importId) {
 
 window.updateImportProgress = updateProgress;
 
+async function loadImportHistory() {
+    const userName = document.getElementById('history-user-name').value || 'user';
+    const isAdmin = document.getElementById('history-is-admin').checked;
+
+    const queryUserName = isAdmin ? 'admin' : userName;
+
+    try {
+        const response = await fetch(`/api/import/history?userName=${encodeURIComponent(queryUserName)}`);
+
+        if (!response.ok) {
+            throw new Error('Failed to load history');
+        }
+
+        const history = await response.json();
+        displayHistory(history);
+    } catch (error) {
+        console.error('Load history error:', error);
+        alert('Failed to load history: ' + error.message);
+    }
+}
+
+function displayHistory(history) {
+    const tbody = document.getElementById('history-table-body');
+    tbody.innerHTML = '';
+
+    if (history.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="12">No import history found</td></tr>';
+        return;
+    }
+
+    history.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.id}</td>
+            <td>${item.fileName}</td>
+            <td>${item.fileType}</td>
+            <td class="status-${item.status.toLowerCase()}">${item.status}</td>
+            <td>${item.userName} ${item.isAdmin ? '(Admin)' : ''}</td>
+            <td>${formatDate(item.startTime)}</td>
+            <td>${item.endTime ? formatDate(item.endTime) : '-'}</td>
+            <td>${item.totalRecords || 0}</td>
+            <td>${item.successfulRecords || 0}</td>
+            <td>${item.failedRecords || 0}</td>
+            <td>${item.currentProgress || 0}%</td>
+            <td>${item.errorMessage || '-'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+
+async function clearImportHistory() {
+    const userName = document.getElementById('history-user-name').value || 'user';
+    const isAdmin = document.getElementById('history-is-admin').checked;
+
+    if (!isAdmin) {
+        alert('Only admin can clear import history');
+        return;
+    }
+
+    if (!confirm('Are you sure you want to clear all import history? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/import/history?userName=${encodeURIComponent(userName)}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to clear history');
+        }
+
+        const result = await response.json();
+        alert('Import history cleared successfully');
+        loadImportHistory();
+    } catch (error) {
+        console.error('Clear history error:', error);
+        alert('Failed to clear history: ' + error.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const loadHistoryBtn = document.getElementById('load-history-btn');
+    if (loadHistoryBtn) {
+        loadHistoryBtn.addEventListener('click', loadImportHistory);
+    }
+
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    if (clearHistoryBtn) {
+        clearHistoryBtn.addEventListener('click', clearImportHistory);
+    }
+});

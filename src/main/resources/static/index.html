@@ -14,6 +14,7 @@
             <button class="menu-btn active" data-view="table">Objects Table</button>
             <button class="menu-btn" data-view="special">Special Operations</button>
             <button class="menu-btn" data-view="import">Import</button>
+            <button class="menu-btn" data-view="history">Import History</button>
         </nav>
     </header>
 
@@ -135,7 +136,43 @@
         </div>
     </div>
 
-
+    <div id="history-view" class="view">
+        <h2>Import History</h2>
+        <div class="history-container">
+            <div class="user-info">
+                <label>User Name:</label>
+                <input type="text" id="history-user-name" value="user" placeholder="Enter user name">
+                <label>
+                    <input type="checkbox" id="history-is-admin"> Admin
+                </label>
+                <button class="btn btn-primary" id="load-history-btn">Load History</button>
+                <button class="btn btn-danger" id="clear-history-btn" style="margin-left: 10px;">Clear History (Admin)
+                </button>
+            </div>
+            <div id="history-table-container">
+                <table id="history-table">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>File Name</th>
+                        <th>File Type</th>
+                        <th>Status</th>
+                        <th>User</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Total Records</th>
+                        <th>Successful</th>
+                        <th>Failed</th>
+                        <th>Progress</th>
+                        <th>Error</th>
+                    </tr>
+                    </thead>
+                    <tbody id="history-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div id="modal" class="modal">
