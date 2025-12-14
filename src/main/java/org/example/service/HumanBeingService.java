@@ -311,6 +311,10 @@ public class HumanBeingService {
         return heroesWithoutCar.size();
     }
 
+    public void deleteAllHumanBeings() {
+        humanBeingRepository.deleteAll();
+    }
+
     public List<Car> getAllCars() {
         return carRepository.findAll();
     }
